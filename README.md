@@ -26,9 +26,12 @@ n8n-self-hosted-cloudflare-starter/
 ├── env.example             # Example environment variables
 ├── .env                    # Environment variables (create this)
 ├── .gitignore             # Git ignore rules
+├── backup.sh              # Automated backup script
+├── restore.sh             # Restore from backup script
 ├── n8n_data/              # n8n data directory (auto-created)
 │   ├── binaryData/        # Binary data storage
 │   └── nodes/             # Custom nodes
+├── backups/               # Backup directory (auto-created)
 └── README.md              # This file
 ```
 
@@ -128,40 +131,61 @@ Visit `https://your-subdomain.your-domain.com` to access your n8n workflow edito
 
 ### Automated Backup Script
 
-Create a backup script (`backup.sh`):
+This repository includes a comprehensive backup script (`backup.sh`) that automatically:
+
+- Creates timestamped compressed backups
+- Stores backups in a `./backups/` directory
+- Automatically cleans up old backups (keeps last 7 by default)
+- Provides detailed backup information
 
 ```bash
-#!/bin/bash
+# Run backup script
+./backup.sh
+```
+
+### Restore from Backup
+
+Use the included restore script (`restore.sh`) to safely restore from backups:
+
+```bash
+# Run restore script
+./restore.sh
+```
+
+The restore script will:
+
+- List available backups
+- Safely stop the n8n container
+- Backup current data before restoring
+- Extract the selected backup
+- Restart the n8n container
+
+### Manual Backup (Alternative)
+
+If you prefer manual backup, you can also use:
+
+```bash
+# Create manual backup
 TIMESTAMP=$(date +"%Y%m%d")
 tar -czf n8n_backup_$TIMESTAMP.tar.gz ./n8n_data
-# Keep only last 7 backups
-ls -tp | grep -v '/$' | tail -n +8 | xargs -I {} rm -- {}
+
+# Manual restore
+docker-compose down
+mv ./n8n_data ./n8n_data_old
+tar -xzf n8n_backup_YYYYMMDD.tar.gz
+docker-compose up -d
 ```
 
 ### Schedule Backups with Cron
+
+To automate your backups, schedule the script to run periodically using `cron`:
 
 ```bash
 # Edit crontab
 crontab -e
 
 # Add daily backup at 2:00 AM
-0 2 * * * /path/to/your/backup_script.sh
-```
-
-### Restore from Backup
-
-```bash
-# Stop n8n
-docker-compose down
-
-# Backup current data
-mv ./n8n_data ./n8n_data_old
-
-# Extract backup
-tar -xzf n8n_backup_YYYYMMDD.tar.gz
-
-# Restart n8n
-docker-compose up -d
+0 2 * * * /path/to/your/n8n-self-hosted-cloudflare-starter/backup.sh
 ```
 
 ## 🤖 AI Agent Workflows
