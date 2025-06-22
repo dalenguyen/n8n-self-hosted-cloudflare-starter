@@ -21,7 +21,7 @@ A starter template for self-hosting **n8n** — a powerful workflow automation t
 ## 🏗️ Project Structure
 
 ```
-n8n-test/
+n8n-self-hosted-cloudflare-starter/
 ├── docker-compose.yml      # Docker configuration for n8n
 ├── env.example             # Example environment variables
 ├── .env                    # Environment variables (create this)
@@ -38,8 +38,8 @@ n8n-test/
 
 ```bash
 # Clone this repository
-git clone <your-repo-url>
-cd n8n-test
+git clone https://github.com/dalenguyen/n8n-self-hosted-cloudflare-starter.git
+cd n8n-self-hosted-cloudflare-starter
 
 # Create environment file
 cp env.example .env
