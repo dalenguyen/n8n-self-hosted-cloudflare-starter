@@ -1,3 +1,4 @@
 .env
 n8n_data
 backups/
+.idea/
