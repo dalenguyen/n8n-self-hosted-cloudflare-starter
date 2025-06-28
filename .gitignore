@@ -2,3 +2,8 @@
 n8n_data
 backups/
 .idea/
+
+# Cloudflare tunnel files
+tunnel-credentials.json
+cloudflared-config.yml
+*.bak

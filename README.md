@@ -52,6 +52,17 @@ cp env.example .env
 
 Edit the `.env` file with your credentials:
 
+```bash
+# Domain Configuration
+DOMAIN=yourdomain.com
+
+# Authentication
+N8N_BASIC_AUTH_USER=admin
+N8N_BASIC_AUTH_PASSWORD=your_super_secret_password
+```
+
+Then follow the **Cloudflare Firewall Rules Setup** section below to secure your webhook subdomain.
+
 ```dotenv
 # .env
 N8N_BASIC_AUTH_USER=admin
@@ -60,15 +71,48 @@ N8N_BASIC_AUTH_PASSWORD=your_super_secret_password
 
 > **⚠️ Important:** Add `.env` to your `.gitignore` file to prevent committing secrets.
 
-### 3. Update Domain Configuration
+### 3. Configure Domain and Security
 
-Edit `docker-compose.yml` and replace the domain placeholders:
+> **📖 For detailed setup instructions with separate subdomains for UI and webhooks, see [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md)**
 
-```yaml
-environment:
-  - N8N_HOST=your-subdomain.your-domain.com
-  - WEBHOOK_URL=https://your-subdomain.your-domain.com
+#### A. Domain Configuration
+
+1. **Purchase a domain** (if you don't have one) from a registrar that supports Cloudflare DNS
+2. **Add your domain to Cloudflare**:
+
+   - Sign up for a free Cloudflare account
+   - Add your domain to Cloudflare
+   - Update your domain's nameservers to Cloudflare's nameservers
+
+3. **Create a subdomain for n8n**:
+   - In Cloudflare dashboard, go to DNS settings
+   - Add a CNAME record: `n8n.yourdomain.com` → `yourdomain.com`
+   - Or use a subdomain like `workflows.yourdomain.com`
+
+#### B. Security Configuration
+
+1. **Update your `.env` file** with your actual domain:
+
+```bash
+# Domain Configuration
+DOMAIN=n8n.yourdomain.com
+
+# Authentication (use strong passwords!)
+N8N_BASIC_AUTH_USER=admin
+N8N_BASIC_AUTH_PASSWORD=your_super_secret_password
 ```
+
+2. **Set up Cloudflare Firewall Rules** (recommended):
+
+   - In Cloudflare dashboard, go to Security → WAF
+   - Create a firewall rule to restrict access to your n8n instance
+   - Consider using Cloudflare Access for additional security
+
+3. **Optional: Create separate subdomain for webhooks**:
+   - Create `webhooks.yourdomain.com` for webhook endpoints
+   - This separates UI access from webhook access for better security
+
+> **🔒 Advanced Security Setup**: For comprehensive security configuration with separate UI and webhook subdomains, see the [Security Configuration section in CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md#security-configuration).
 
 ### 4. Start n8n
 
@@ -79,6 +123,8 @@ docker-compose up -d
 n8n will be available locally at `http://localhost:5678`
 
 ## 🌐 Cloudflare Tunnel Setup
+
+> **📖 For comprehensive setup with automated scripts and separate subdomains, see [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md)**
 
 ### 1. Install cloudflared
 
@@ -120,6 +166,8 @@ cloudflared tunnel run n8n-tunnel --url http://localhost:5678
 Visit `https://your-subdomain.your-domain.com` to access your n8n workflow editor.
 
 ## 🔒 Security Best Practices
+
+> **🔒 For detailed security setup with firewall rules and subdomain separation, see [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md#security-configuration)**
 
 1. **Keep basic auth enabled** in n8n for an extra security layer
 2. **Use strong passwords** for your n8n admin account
@@ -197,7 +245,9 @@ This template is perfect for building AI agent workflows. You can extend it with
 - **Vector databases** for document processing and retrieval
 - **Custom AI workflows** for scheduling, summarization, and chatbots
 
-## 🛠️ Troubleshooting
+## ��️ Troubleshooting
+
+> **🔧 For comprehensive troubleshooting guide including security issues, credentials problems, and domain configuration, see [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md#troubleshooting)**
 
 ### Common Issues
 
