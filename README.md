@@ -52,6 +52,17 @@ cp env.example .env
 
 Edit the `.env` file with your credentials:
 
+```bash
+# Domain Configuration
+DOMAIN=yourdomain.com
+
+# Authentication
+N8N_BASIC_AUTH_USER=admin
+N8N_BASIC_AUTH_PASSWORD=your_super_secret_password
+```
+
+Then follow the **Cloudflare Firewall Rules Setup** section below to secure your webhook subdomain.
+
 ```dotenv
 # .env
 N8N_BASIC_AUTH_USER=admin
@@ -60,14 +71,8 @@ N8N_BASIC_AUTH_PASSWORD=your_super_secret_password
 
 > **⚠️ Important:** Add `.env` to your `.gitignore` file to prevent committing secrets.
 
-### 3. Update Domain Configuration
+### 3. Configure Domain and Security
 
-Edit `docker-compose.yml` and replace the domain placeholders:
-
-```yaml
-environment:
-  - N8N_HOST=your-subdomain.your-domain.com
-  - WEBHOOK_URL=https://your-subdomain.your-domain.com
 ```
 
 ### 4. Start n8n

@@ -1,0 +1,23 @@
+# Cloudflare Tunnel Configuration Template for n8n
+# This template will be processed to create the actual config with your domain
+# - n8n.{{DOMAIN}} -> Main UI
+# - webhook.{{DOMAIN}} -> Webhook endpoints
+
+tunnel: { { TUNNEL_ID } }
+credentials-file: /etc/cloudflared/creds/credentials.json
+
+ingress:
+  # Route main UI subdomain to n8n
+  - hostname: n8n.{{DOMAIN}}
+    service: http://n8n:5678
+    originRequest:
+      noTLSVerify: true
+
+  # Route webhook subdomain to n8n webhook endpoints
+  - hostname: webhook.{{DOMAIN}}
+    service: http://n8n:5678
+    originRequest:
+      noTLSVerify: true
+
+  # Catch-all rule (should be last)
+  - service: http_status:404
