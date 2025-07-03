@@ -1,0 +1,47 @@
+# docker-compose.yml for n8n with PostgreSQL
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8nuser
+      POSTGRES_PASSWORD: 7!ULHGKkPG#tNt#
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    networks:
+      - n8n_backend
+
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8nuser
+      DB_POSTGRESDB_PASSWORD: 7!ULHGKkPG#tNt#
+      N8N_HOST: workflows.dalenguyen.me
+      WEBHOOK_URL: https://workflows.dalenguyen.me
+      N8N_PROTOCOL: https
+      GENERIC_TIMEZONE: America/Toronto # Adjust to your timezone
+      N8N_ENCRYPTION_KEY: b6Jq8wX0pTzR3uYkFhLm7eCgV9oI2dNa # Generate a strong encryption key later
+      # Basic Auth (recommended for initial setup, disable after Nginx/Cloudflare)
+      N8N_BASIC_AUTH_ACTIVE: 'true'
+      N8N_BASIC_AUTH_USER: 'admin'
+      N8N_BASIC_AUTH_PASSWORD: 'W*zK0WB@oc126k^J'
+    ports:
+      - '127.0.0.1:5678:5678' # Only expose to localhost, Nginx will proxy
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    networks:
+      - n8n_backend
+    depends_on:
+      - postgres
+
+networks:
+  n8n_backend:
+    driver: bridge
