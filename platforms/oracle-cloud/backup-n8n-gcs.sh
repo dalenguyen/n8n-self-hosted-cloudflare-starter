@@ -64,13 +64,46 @@ else
     echo "Found Docker at: $DOCKER_CMD"
 fi
 
-# Check gsutil
-if ! command -v gsutil &> /dev/null; then
-    echo "Error: gsutil (Google Cloud SDK) is not installed or not in PATH."
+# Function to find gsutil (sh-compatible)
+find_gsutil() {
+    # Try common gsutil locations
+    if [ -x "/usr/bin/gsutil" ]; then
+        echo "/usr/bin/gsutil"
+        return 0
+    fi
+    
+    if [ -x "/usr/local/bin/gsutil" ]; then
+        echo "/usr/local/bin/gsutil"
+        return 0
+    fi
+    
+    if [ -x "/opt/homebrew/bin/gsutil" ]; then
+        echo "/opt/homebrew/bin/gsutil"
+        return 0
+    fi
+    
+    # Try which command if available
+    if command -v which >/dev/null 2>&1; then
+        GSUTIL_PATH=$(which gsutil 2>/dev/null)
+        if [ -n "$GSUTIL_PATH" ] && [ -x "$GSUTIL_PATH" ]; then
+            echo "$GSUTIL_PATH"
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
+# Find gsutil
+GSUTIL_CMD=$(find_gsutil)
+if [ -z "$GSUTIL_CMD" ]; then
+    echo "Error: gsutil (Google Cloud SDK) is not installed or not accessible."
+    echo "Tried to find gsutil in: /usr/bin/gsutil, /usr/local/bin/gsutil, /opt/homebrew/bin/gsutil, and PATH"
     echo "Current PATH: $PATH"
+    echo "Please ensure gsutil is installed and accessible."
     exit 1
 else
-    echo "Found gsutil at: $(which gsutil)"
+    echo "Found gsutil at: $GSUTIL_CMD"
 fi
 
 # Ensure backup directory exists
@@ -118,7 +151,7 @@ echo "Containers started."
 
 # --- Upload to Google Cloud Storage ---
 echo "Uploading ${BACKUP_FILENAME} to GCS bucket ${GCS_BUCKET}..."
-gsutil cp "$BACKUP_PATH" "${GCS_BUCKET}/${BACKUP_FILENAME}"
+"$GSUTIL_CMD" cp "$BACKUP_PATH" "${GCS_BUCKET}/${BACKUP_FILENAME}"
 if [ $? -eq 0 ]; then
     echo "Backup uploaded successfully to GCS."
 else
@@ -133,20 +166,53 @@ echo "Local cleanup complete."
 
 # --- Clean up old GCS backups ---
 echo "Cleaning up GCS backups older than ${RETENTION_DAYS_GCS} days..."
-# gsutil ls -l provides list with creation time, then filter
-# This might require more advanced parsing or GCS bucket lifecycle rules for true automation
-# For now, a simpler approach is:
-gsutil ls "${GCS_BUCKET}/${BACKUP_PREFIX}_*.tar.gz" | while read -r line; do
-  file_date_str=$(echo "$line" | awk '{print $2}' | cut -d'_' -f2) # Extracts YYYYMMDD
-  file_date_ts=$(date -d "${file_date_str:0:8}" +%s)
-  current_date_ts=$(date +%s)
-  days_old=$(( (current_date_ts - file_date_ts) / (60*60*24) ))
-  if [ "$days_old" -gt "$RETENTION_DAYS_GCS" ]; then
-    gsutil rm "$line"
-    echo "Deleted old GCS backup: $line"
-  fi
+
+# Get list of backups and process each one
+"$GSUTIL_CMD" ls "${GCS_BUCKET}/${BACKUP_PREFIX}_*.tar.gz" 2>/dev/null | while read -r backup; do
+    if [ -n "$backup" ]; then
+        filename=$(basename "$backup")
+        
+        # Extract date from filename (format: n8n_backup_YYYYMMDD_HHMMSS.tar.gz)
+        # Use sed to extract YYYYMMDD part
+        date_part=$(echo "$filename" | sed 's/n8n_backup_\([0-9]\{8\}\)_.*\.tar\.gz/\1/')
+        
+        # Check if date extraction was successful
+        if [ "$date_part" = "$filename" ]; then
+            echo "Warning: Could not parse date from filename: $filename"
+            continue
+        fi
+        
+        # Convert date to timestamp (sh-compatible)
+        # Format: YYYYMMDD to YYYY-MM-DD
+        year=$(echo "$date_part" | cut -c1-4)
+        month=$(echo "$date_part" | cut -c5-6)
+        day=$(echo "$date_part" | cut -c7-8)
+        formatted_date="${year}-${month}-${day}"
+        
+        # Get current date
+        current_date=$(date +%Y-%m-%d)
+        
+        # Calculate days difference
+        # Convert both dates to seconds since epoch
+        backup_epoch=$(date -d "$formatted_date" +%s 2>/dev/null)
+        current_epoch=$(date -d "$current_date" +%s 2>/dev/null)
+        
+        if [ -z "$backup_epoch" ] || [ -z "$current_epoch" ]; then
+            echo "Warning: Could not calculate date for: $filename"
+            continue
+        fi
+        
+        # Calculate days difference
+        days_old=$(( (current_epoch - backup_epoch) / 86400 ))
+        
+        # Check if backup is older than retention period
+        if [ "$days_old" -gt "$RETENTION_DAYS_GCS" ]; then
+            echo "Deleting old backup: $filename (${days_old} days old)"
+            "$GSUTIL_CMD" rm "$backup"
+        else
+            echo "Keeping backup: $filename (${days_old} days old)"
+        fi
+    fi
 done
-# For simpler GCS retention, consider setting up Bucket Lifecycle Management directly in GCP.
-echo "GCS cleanup using lifecycle rules is recommended for advanced retention."
 
 echo "--- n8n backup process complete ---"
